@@ -1,61 +1,47 @@
-import React, { useState, useEffect } from 'react';
-import { Heart, Share2, RefreshCw, Calendar, Sparkles, Quote, Menu, X, Trash2, Info } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Heart, Share2, RefreshCw, Calendar, Sparkles, Quote, 
+  Trash2, BrainCircuit, Volume2, Wand2, Loader2 
+} from 'lucide-react';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 
-// --- DADOS ---
+// --- CONFIGURAÇÕES ---
+const apiKey = ""; // Chave da API fornecida pelo ambiente
+
 const quotesData = [
   { id: 1, text: "A única maneira de fazer um excelente trabalho é amar o que você faz.", author: "Steve Jobs", category: "Trabalho" },
   { id: 2, text: "O sucesso é a soma de pequenos esforços repetidos dia após dia.", author: "Robert Collier", category: "Persistência" },
-  { id: 3, text: "Não espere por oportunidades extraordinárias. Agarre ocasiões comuns e torne-as grandes.", author: "Orison Swett Marden", category: "Ação" },
-  { id: 4, text: "Acredite que você pode, assim você já está no meio do caminho.", author: "Theodore Roosevelt", category: "Confiança" },
-  { id: 5, text: "O futuro pertence àqueles que acreditam na beleza de seus sonhos.", author: "Eleanor Roosevelt", category: "Sonhos" },
-  { id: 6, text: "Comece onde você está. Use o que você tem. Faça o que você pode.", author: "Arthur Ashe", category: "Ação" },
-  { id: 7, text: "Tudo o que um sonho precisa para ser realizado é alguém que acredite que ele possa ser realizado.", author: "Roberto Shinyashiki", category: "Sonhos" },
-  { id: 8, text: "Imagine uma nova história para sua vida e acredite nela.", author: "Paulo Coelho", category: "Vida" },
-  { id: 9, text: "O insucesso é apenas uma oportunidade para recomeçar com mais inteligência.", author: "Henry Ford", category: "Resiliência" },
-  { id: 10, text: "Você nunca sabe que resultados virão da sua ação. Mas se você não fizer nada, não existirão resultados.", author: "Mahatma Gandhi", category: "Ação" },
-  { id: 11, text: "Persistência é a irmã gêmea da excelência. Uma é mãe da qualidade, a outra é a mãe do tempo.", author: "Marabel Morgan", category: "Persistência" },
-  { id: 12, text: "A alegria de fazer o bem é a única felicidade verdadeira.", author: "Leon Tolstói", category: "Felicidade" },
-  { id: 13, text: "Não deixe que o ruído da opinião alheia impeça que você escute a sua voz interior.", author: "Steve Jobs", category: "Autoconfiança" },
-  { id: 14, text: "A vida é 10% o que acontece com você e 90% como você reage a isso.", author: "Charles R. Swindoll", category: "Atitude" },
-  { id: 15, text: "A coragem não é ausência do medo; é a persistência apesar do medo.", author: "Desconhecido", category: "Coragem" },
-  { id: 16, text: "Só se vê bem com o coração, o essencial é invisível aos olhos.", author: "Antoine de Saint-Exupéry", category: "Sabedoria" },
-  { id: 17, text: "Transportai um punhado de terra todos os dias e fareis uma montanha.", author: "Confúcio", category: "Persistência" },
-  { id: 18, text: "Se você quer viver uma vida feliz, amarre-se a uma meta, não às pessoas nem às coisas.", author: "Albert Einstein", category: "Felicidade" },
-  { id: 19, text: "O melhor momento para plantar uma árvore foi há 20 anos. O segundo melhor momento é agora.", author: "Provérbio Chinês", category: "Tempo" },
-  { id: 20, text: "Não importa o quão devagar você vá, desde que você não pare.", author: "Confúcio", category: "Progresso" },
-  { id: 21, text: "A disciplina é a ponte entre metas e realizações.", author: "Jim Rohn", category: "Disciplina" },
-  { id: 22, text: "Sorte é o que acontece quando a preparação encontra a oportunidade.", author: "Sêneca", category: "Sorte" },
-  { id: 23, text: "Você não pode mudar o vento, mas pode ajustar as velas do barco para chegar onde quer.", author: "Confúcio", category: "Adaptação" },
-  { id: 24, text: "A gratidão transforma o que temos em suficiente.", author: "Melody Beattie", category: "Gratidão" },
-  { id: 25, text: "Faça o que for necessário para ser feliz. Mas não se esqueça que a felicidade é um sentimento simples, você pode encontrá-la e deixá-la ir embora por não perceber sua simplicidade.", author: "Mario Quintana", category: "Felicidade" }
+  { id: 3, text: "Acredite que você pode, assim você já está no meio do caminho.", author: "Theodore Roosevelt", category: "Confiança" },
+  { id: 4, text: "O futuro pertence àqueles que acreditam na beleza de seus sonhos.", author: "Eleanor Roosevelt", category: "Sonhos" },
+  { id: 5, text: "Comece onde você está. Use o que você tem. Faça o que você pode.", author: "Arthur Ashe", category: "Ação" },
+  { id: 6, text: "Imagine uma nova história para sua vida e acredite nela.", author: "Paulo Coelho", category: "Vida" },
+  { id: 7, text: "A vida é 10% o que acontece com você e 90% como você reage a isso.", author: "Charles R. Swindoll", category: "Atitude" },
+  { id: 8, text: "Não importa o quão devagar você vá, desde que você não pare.", author: "Confúcio", category: "Progresso" }
 ];
 
-// --- COMPONENTE DE ANÚNCIO (Placeholder) ---
-const AdBanner = ({ type = 'standard' }) => {
-  // Simula um espaço publicitário (AdSense/AdMob)
-  // No futuro, você substituiria o conteúdo desta div pelo script do Google Ads
-  return (
-    <div className={`my-6 mx-auto bg-slate-100 border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 rounded-lg overflow-hidden relative group cursor-pointer hover:bg-slate-50 transition-colors ${
-      type === 'large' ? 'w-[300px] h-[250px]' : 'w-[320px] h-[50px]'
-    }`}>
-      <span className="text-xs font-bold uppercase tracking-widest mb-1">Publicidade</span>
-      <span className="text-[10px] opacity-70">
-        {type === 'large' ? 'Retângulo Médio (300x250)' : 'Banner Mobile (320x50)'}
-      </span>
-      
-      {/* Overlay explicativo (apenas para visualização do dev) */}
-      <div className="absolute inset-0 bg-indigo-600/10 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-        <span className="text-indigo-600 font-bold text-xs bg-white px-2 py-1 rounded shadow">Ad Space</span>
-      </div>
-    </div>
-  );
-};
+// --- COMPONENTE DE ANÚNCIO ---
+const AdBanner = ({ type = 'standard' }) => (
+  <div className={`my-6 mx-auto bg-slate-100 border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 rounded-lg overflow-hidden relative group cursor-pointer hover:bg-slate-50 transition-colors ${
+    type === 'large' ? 'w-[300px] h-[250px]' : 'w-[320px] h-[50px]'
+  }`}>
+    <span className="text-[10px] font-bold uppercase tracking-widest mb-1">Publicidade</span>
+    <div className="absolute inset-0 bg-indigo-600/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+  </div>
+);
 
 export default function App() {
   const [currentView, setCurrentView] = useState('daily');
   const [currentQuote, setCurrentQuote] = useState(null);
   const [favorites, setFavorites] = useState([]);
   const [notification, setNotification] = useState(null);
+  
+  // Estados para as funções Gemini
+  const [aiReflection, setAiReflection] = useState("");
+  const [isLoadingAi, setIsLoadingAi] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const audioContextRef = useRef(null);
 
   useEffect(() => {
     const savedFavorites = localStorage.getItem('motivationalFavorites');
@@ -68,6 +54,7 @@ export default function App() {
     const seed = today.getFullYear() * 1000 + (today.getMonth() + 1) * 100 + today.getDate();
     const index = seed % quotesData.length;
     setCurrentQuote(quotesData[index]);
+    setAiReflection("");
     setCurrentView('daily');
   };
 
@@ -77,40 +64,145 @@ export default function App() {
       randomIndex = Math.floor(Math.random() * quotesData.length);
     } while (currentQuote && quotesData[randomIndex].id === currentQuote.id);
     setCurrentQuote(quotesData[randomIndex]);
+    setAiReflection("");
     setCurrentView('explore');
   };
 
-  const toggleFavorite = (quote) => {
-    let newFavorites;
-    const isFav = favorites.some(fav => fav.id === quote.id);
-
-    if (isFav) {
-      newFavorites = favorites.filter(fav => fav.id !== quote.id);
-      showNotification("Removido dos favoritos");
-    } else {
-      newFavorites = [...favorites, quote];
-      showNotification("Adicionado aos favoritos ❤️");
+  // --- INTEGRAÇÃO GEMINI: REFLEXÃO ---
+  const generateAiReflection = async () => {
+    if (!currentQuote || isLoadingAi) return;
+    setIsLoadingAi(true);
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: `Explique brevemente (máximo 2 frases) como posso aplicar esta frase na minha vida hoje: "${currentQuote.text}"` }] }],
+          systemInstruction: { parts: [{ text: "Você é um mentor de vida motivacional gentil e prático." }] }
+        })
+      });
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      setAiReflection(text);
+    } catch (error) {
+      showNotification("Erro ao conectar com a IA");
+    } finally {
+      setIsLoadingAi(false);
     }
+  };
 
-    setFavorites(newFavorites);
-    localStorage.setItem('motivationalFavorites', JSON.stringify(newFavorites));
+  // --- INTEGRAÇÃO GEMINI: GERAR FRASE MÁGICA ---
+  const generateMagicQuote = async () => {
+    setIsLoadingAi(true);
+    setAiReflection("");
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: "Gere uma frase motivacional única e curta." }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                text: { type: "STRING" },
+                author: { type: "STRING" }
+              }
+            }
+          }
+        })
+      });
+      const data = await response.json();
+      const result = JSON.parse(data.candidates[0].content.parts[0].text);
+      setCurrentQuote({ id: Date.now(), text: result.text, author: result.author, category: "Mágica ✨" });
+      setCurrentView('explore');
+    } catch (error) {
+      showNotification("A magia falhou, tente novamente");
+    } finally {
+      setIsLoadingAi(false);
+    }
+  };
+
+  // --- INTEGRAÇÃO GEMINI: TEXT-TO-SPEECH (OUVIR) ---
+  const playQuoteAudio = async () => {
+    if (isSpeaking) return;
+    setIsSpeaking(true);
+    try {
+      const textToSay = `Reflexão de hoje: ${currentQuote.text}. Por ${currentQuote.author}`;
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: "gemini-2.5-flash-preview-tts",
+          contents: [{ parts: [{ text: `Diga com uma voz inspiradora e calma: ${textToSay}` }] }],
+          generationConfig: {
+            responseModalities: ["AUDIO"],
+            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Puck" } } }
+          }
+        })
+      });
+      
+      const data = await response.json();
+      const audioData = data.candidates[0].content.parts[0].inlineData.data;
+      
+      // Converte PCM para WAV para tocar no navegador
+      const audioBlob = pcmToWav(audioData, 24000); // Exemplo de sample rate
+      const url = URL.createObjectURL(audioBlob);
+      const audio = new Audio(url);
+      audio.onended = () => setIsSpeaking(false);
+      audio.play();
+    } catch (error) {
+      showNotification("Erro ao gerar áudio");
+      setIsSpeaking(false);
+    }
+  };
+
+  // Helper simples para PCM para WAV (simplificado)
+  const pcmToWav = (base64Pcm, sampleRate) => {
+    const byteCharacters = atob(base64Pcm);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const buffer = byteArray.buffer;
+    
+    // Header WAV básico (44 bytes)
+    const header = new ArrayBuffer(44);
+    const view = new DataView(header);
+    const writeString = (offset, string) => {
+      for (let i = 0; i < string.length; i++) view.setUint8(offset + i, string.charCodeAt(i));
+    };
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + buffer.byteLength, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true); // Linear PCM
+    view.setUint16(22, 1, true); // Mono
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeString(36, 'data');
+    view.setUint32(40, buffer.byteLength, true);
+
+    return new Blob([header, buffer], { type: 'audio/wav' });
+  };
+
+  const toggleFavorite = (quote) => {
+    let newFavs = favorites.some(f => f.id === quote.id)
+      ? favorites.filter(f => f.id !== quote.id)
+      : [...favorites, quote];
+    setFavorites(newFavs);
+    localStorage.setItem('motivationalFavorites', JSON.stringify(newFavs));
+    showNotification(favorites.some(f => f.id === quote.id) ? "Removido" : "Favoritado ❤️");
   };
 
   const copyToClipboard = (text, author) => {
-    const fullText = `"${text}" - ${author}`;
-    // Fallback simples para execCommand se clipboard API falhar (comum em iframes)
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(fullText).then(() => showNotification("Copiado!"));
-    } else {
-        // Método legado para garantir funcionamento
-        const textArea = document.createElement("textarea");
-        textArea.value = fullText;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textArea);
-        showNotification("Copiado!");
-    }
+    const full = `"${text}" - ${author}`;
+    navigator.clipboard.writeText(full).then(() => showNotification("Copiado!"));
   };
 
   const showNotification = (msg) => {
@@ -118,25 +210,13 @@ export default function App() {
     setTimeout(() => setNotification(null), 2500);
   };
 
-  const NavButton = ({ view, icon: Icon, label, onClick }) => (
-    <button
-      onClick={onClick}
-      className={`flex flex-col items-center justify-center w-full py-3 transition-colors ${
-        currentView === view ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'
-      }`}
-    >
-      <Icon size={24} strokeWidth={currentView === view ? 2.5 : 2} />
-      <span className="text-xs mt-1 font-medium">{label}</span>
-    </button>
-  );
-
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col max-w-md mx-auto shadow-2xl overflow-hidden relative">
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col max-w-md mx-auto shadow-2xl overflow-hidden relative border-x border-slate-200">
       
-      {/* Header */}
-      <header className="bg-white/90 backdrop-blur-md sticky top-0 z-10 px-6 py-4 flex items-center justify-between border-b border-slate-100 shadow-sm">
+      {/* HEADER */}
+      <header className="bg-white/90 backdrop-blur-md sticky top-0 z-30 px-6 py-4 flex items-center justify-between border-b border-slate-100 shadow-sm">
         <div className="flex items-center gap-2">
-          <div className="bg-gradient-to-br from-indigo-600 to-purple-600 text-white p-1.5 rounded-lg shadow-md shadow-indigo-200">
+          <div className="bg-gradient-to-br from-indigo-600 to-purple-600 text-white p-1.5 rounded-lg shadow-md">
             <Sparkles size={18} fill="currentColor" />
           </div>
           <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
@@ -145,158 +225,127 @@ export default function App() {
         </div>
       </header>
 
-      {/* Conteúdo Principal */}
-      <main className="flex-1 flex flex-col relative overflow-y-auto pb-20 scroll-smooth">
+      <main className="flex-1 flex flex-col overflow-y-auto pb-24 relative bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:20px_20px]">
         
-        {/* Notificação Toast */}
         {notification && (
-          <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-5 py-2.5 rounded-full text-sm shadow-xl z-50 animate-fade-in-down flex items-center gap-2 border border-slate-700">
-            <Sparkles size={14} className="text-yellow-400" />
+          <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-5 py-2 rounded-full text-xs shadow-xl z-50 animate-bounce">
             {notification}
           </div>
         )}
 
-        {/* --- VIEW: FAVORITOS --- */}
+        {/* VIEW: FAVORITOS */}
         {currentView === 'favorites' && (
-          <div className="p-6 space-y-4 animate-fade-in pb-24">
-            <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-              Meus Favoritos <span className="text-sm font-normal text-slate-400">({favorites.length})</span>
-            </h2>
-            
+          <div className="p-6 space-y-4 animate-fade-in">
+            <h2 className="text-xl font-bold flex items-center gap-2">Meus Favoritos ({favorites.length})</h2>
             {favorites.length === 0 ? (
-              <div className="text-center py-20 opacity-50">
-                <Heart size={48} className="mx-auto mb-4 text-slate-300" />
-                <p>Você ainda não tem favoritos.</p>
-                <button 
-                  onClick={() => {setRandomQuote(); setCurrentView('explore');}}
-                  className="mt-4 text-indigo-600 font-semibold hover:underline"
-                >
-                  Explorar frases
-                </button>
-              </div>
+              <p className="text-center py-20 text-slate-400">Nenhuma frase guardada ainda.</p>
             ) : (
-              favorites.map((fav) => (
-                <div key={fav.id} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 relative group transition-all hover:shadow-md">
-                  <p className="text-slate-700 font-medium leading-relaxed mb-3 pr-8">"{fav.text}"</p>
-                  <p className="text-sm text-slate-400 font-serif italic">— {fav.author}</p>
-                  <div className="absolute top-4 right-4 flex flex-col gap-2">
-                    <button onClick={() => toggleFavorite(fav)} className="text-slate-300 hover:text-red-500 transition-colors p-1"><Trash2 size={16} /></button>
-                    <button onClick={() => copyToClipboard(fav.text, fav.author)} className="text-slate-300 hover:text-indigo-600 transition-colors p-1"><Share2 size={16} /></button>
-                  </div>
+              favorites.map(f => (
+                <div key={f.id} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm relative group">
+                  <p className="text-sm font-medium mb-2">"{f.text}"</p>
+                  <p className="text-xs text-slate-400 italic">— {f.author}</p>
+                  <button onClick={() => toggleFavorite(f)} className="absolute top-2 right-2 text-slate-200 hover:text-red-500"><Trash2 size={16} /></button>
                 </div>
               ))
             )}
-            
-            {/* Anúncio no final da lista de favoritos */}
-            {favorites.length > 0 && (
-                <div className="pt-4 border-t border-slate-100 mt-8">
-                    <p className="text-center text-xs text-slate-300 mb-2">Publicidade</p>
-                    <AdBanner type="large" />
-                </div>
-            )}
+            <AdBanner type="large" />
           </div>
         )}
 
-        {/* --- VIEW: DAILY & EXPLORE --- */}
+        {/* VIEW: PRINCIPAL */}
         {(currentView === 'daily' || currentView === 'explore') && currentQuote && (
-          <div className="flex-1 flex flex-col items-center pt-8 px-6 animate-fade-in pb-24">
+          <div className="flex-1 flex flex-col items-center justify-center px-8 pt-8 animate-fade-in">
             
-            {/* Categoria Badge */}
-            <span className="mb-8 px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-full uppercase tracking-wider border border-indigo-100">
-              {currentView === 'daily' ? 'Frase do Dia' : currentQuote.category}
-            </span>
+            <div className="mb-6 flex gap-2">
+              <span className="px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded-full border border-indigo-100 uppercase">
+                {currentQuote.category}
+              </span>
+            </div>
 
-            {/* Cartão da Frase Principal */}
-            <div className="w-full relative max-w-sm">
-              <Quote size={48} className="absolute -top-8 -left-2 text-indigo-100 transform -scale-x-100 opacity-80" />
-              
-              <h2 className="text-3xl md:text-3xl font-bold text-slate-800 leading-tight text-center mb-6 relative z-0 drop-shadow-sm">
+            <div className="bg-white p-8 rounded-3xl shadow-xl shadow-indigo-100/50 border border-slate-100 w-full relative group">
+              <Quote size={32} className="text-indigo-100 mb-4" />
+              <h2 className="text-2xl font-bold text-center leading-tight mb-6">
                 {currentQuote.text}
               </h2>
+              <p className="text-center text-slate-400 font-serif">— {currentQuote.author}</p>
               
-              <div className="w-12 h-1 bg-gradient-to-r from-indigo-300 to-purple-300 mx-auto rounded-full mb-6"></div>
-              
-              <p className="text-center text-lg text-slate-500 font-serif italic">
-                — {currentQuote.author}
-              </p>
-            </div>
-
-            {/* Ações Principais */}
-            <div className="mt-10 flex items-center justify-center gap-5 w-full">
+              {/* Botão Ouvir IA */}
               <button 
-                onClick={() => toggleFavorite(currentQuote)}
-                className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all transform hover:scale-105 active:scale-95 ${
-                  favorites.some(f => f.id === currentQuote.id)
-                    ? 'bg-red-500 text-white shadow-red-200 ring-2 ring-red-100'
-                    : 'bg-white text-slate-400 hover:text-red-500 shadow-slate-200 border border-slate-50'
-                }`}
-                title="Favoritar"
+                onClick={playQuoteAudio}
+                disabled={isSpeaking}
+                className="absolute top-4 right-4 p-2 text-slate-300 hover:text-indigo-500 transition-colors"
               >
-                <Heart size={24} fill={favorites.some(f => f.id === currentQuote.id) ? "currentColor" : "none"} />
-              </button>
-
-              {currentView === 'explore' ? (
-                <button 
-                  onClick={setRandomQuote}
-                  className="bg-indigo-600 text-white px-8 h-14 rounded-full shadow-lg shadow-indigo-200 font-bold text-lg flex items-center gap-2 hover:bg-indigo-700 transition-all transform hover:scale-105 active:scale-95 ring-2 ring-indigo-100"
-                >
-                  <RefreshCw size={20} />
-                  Nova Frase
-                </button>
-              ) : (
-                <button 
-                  onClick={() => {setRandomQuote();}}
-                  className="bg-white text-indigo-600 border border-indigo-100 px-6 h-14 rounded-full shadow-lg shadow-slate-100 font-bold flex items-center gap-2 hover:bg-indigo-50 transition-all transform hover:scale-105"
-                >
-                  <Sparkles size={20} />
-                  Explorar
-                </button>
-              )}
-
-              <button 
-                onClick={() => copyToClipboard(currentQuote.text, currentQuote.author)}
-                className="w-14 h-14 bg-white text-slate-400 rounded-full shadow-lg shadow-slate-200 hover:text-indigo-600 flex items-center justify-center transition-all transform hover:scale-105 active:scale-95 border border-slate-50"
-                title="Copiar"
-              >
-                <Share2 size={24} />
+                {isSpeaking ? <Loader2 className="animate-spin" size={18} /> : <Volume2 size={18} />}
               </button>
             </div>
 
-            {/* --- ÁREA DE ANÚNCIO (Banner Mobile) --- */}
-            <div className="mt-auto w-full pt-8">
-               <AdBanner type="standard" />
+            {/* BOTÕES DE IA ✨ */}
+            <div className="grid grid-cols-2 gap-3 w-full mt-6">
+              <button 
+                onClick={generateAiReflection}
+                disabled={isLoadingAi}
+                className="flex items-center justify-center gap-2 py-3 px-4 bg-white border border-indigo-100 rounded-2xl text-xs font-bold text-indigo-600 hover:bg-indigo-50 transition-all shadow-sm"
+              >
+                {isLoadingAi ? <Loader2 className="animate-spin" size={16} /> : <BrainCircuit size={16} />}
+                ✨ Refletir com IA
+              </button>
+              <button 
+                onClick={generateMagicQuote}
+                disabled={isLoadingAi}
+                className="flex items-center justify-center gap-2 py-3 px-4 bg-indigo-600 rounded-2xl text-xs font-bold text-white hover:bg-indigo-700 transition-all shadow-md"
+              >
+                {isLoadingAi ? <Loader2 className="animate-spin" size={16} /> : <Wand2 size={16} />}
+                ✨ Gerar Frase IA
+              </button>
             </div>
 
+            {/* BOX DE REFLEXÃO DA IA */}
+            {aiReflection && (
+              <div className="mt-4 p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100 animate-fade-in w-full">
+                <p className="text-xs text-indigo-800 leading-relaxed italic">
+                  <span className="font-bold block mb-1">Dica da IA:</span>
+                  {aiReflection}
+                </p>
+              </div>
+            )}
+
+            {/* AÇÕES BÁSICAS */}
+            <div className="flex gap-4 mt-8">
+              <button onClick={() => toggleFavorite(currentQuote)} className={`p-4 rounded-full shadow-lg ${favorites.some(f => f.id === currentQuote.id) ? 'bg-red-500 text-white' : 'bg-white text-slate-400'}`}>
+                <Heart size={20} fill={favorites.some(f => f.id === currentQuote.id) ? "currentColor" : "none"} />
+              </button>
+              <button onClick={setRandomQuote} className="p-4 bg-white text-slate-400 rounded-full shadow-lg">
+                <RefreshCw size={20} />
+              </button>
+              <button onClick={() => copyToClipboard(currentQuote.text, currentQuote.author)} className="p-4 bg-white text-slate-400 rounded-full shadow-lg">
+                <Share2 size={20} />
+              </button>
+            </div>
+
+            <AdBanner />
           </div>
         )}
       </main>
 
-      {/* Navegação Tab Bar */}
-      <nav className="bg-white border-t border-slate-100 flex justify-around items-center px-2 pb-safe pt-1 absolute bottom-0 w-full z-20 shadow-[0_-5px_20px_rgba(0,0,0,0.03)]">
-        <NavButton view="daily" icon={Calendar} label="Hoje" onClick={setDailyQuote} />
-        <NavButton view="explore" icon={RefreshCw} label="Explorar" onClick={setRandomQuote} />
-        <NavButton view="favorites" icon={Heart} label="Favoritos" onClick={() => setCurrentView('favorites')} />
+      {/* NAV BAR */}
+      <nav className="bg-white/80 backdrop-blur-md border-t border-slate-100 flex justify-around items-center py-4 absolute bottom-0 w-full z-40">
+        <button onClick={setDailyQuote} className={`flex flex-col items-center gap-1 ${currentView === 'daily' ? 'text-indigo-600' : 'text-slate-400'}`}>
+          <Calendar size={20} />
+          <span className="text-[10px] font-bold">Hoje</span>
+        </button>
+        <button onClick={() => setCurrentView('explore')} className={`flex flex-col items-center gap-1 ${currentView === 'explore' ? 'text-indigo-600' : 'text-slate-400'}`}>
+          <RefreshCw size={20} />
+          <span className="text-[10px] font-bold">Explorar</span>
+        </button>
+        <button onClick={() => setCurrentView('favorites')} className={`flex flex-col items-center gap-1 ${currentView === 'favorites' ? 'text-indigo-600' : 'text-slate-400'}`}>
+          <Heart size={20} />
+          <span className="text-[10px] font-bold">Favoritos</span>
+        </button>
       </nav>
 
-      {/* Estilos CSS */}
       <style>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes fade-in-down {
-          from { opacity: 0; transform: translate(-50%, -20px); }
-          to { opacity: 1; transform: translate(-50%, 0); }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.4s ease-out forwards;
-        }
-        .animate-fade-in-down {
-          animation: fade-in-down 0.3s ease-out forwards;
-        }
-        .pb-safe {
-          padding-bottom: max(env(safe-area-inset-bottom), 16px);
-        }
+        @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fade-in 0.3s ease-out; }
       `}</style>
     </div>
   );
