@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Motivational Quotes App</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin: 50px; }
+        #quote { font-size: 24px; margin: 20px; }
+        #quoteOfTheDay { font-size: 18px; margin: 20px; font-style: italic; }
+        button { padding: 10px 20px; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <h1>Motivational Quotes App</h1>
+    <div id="quoteOfTheDay"></div>
+    <div id="quote"></div>
+    <button id="newQuoteBtn">Get a Random Quote</button>
+
+    <script>
+        const quotes = [
+            "Believe in yourself and all that you are.",
+            "The only way to do great work is to love what you do.",
+            "You are never too old to set another goal or to dream a new dream.",
+            "Success is not the key to happiness. Happiness is the key to success.",
+            "Do what you can with all you have, wherever you are."
+        ];
+
+        const quoteOfTheDay = "The best way to predict the future is to create it.";
+
+        document.getElementById('quoteOfTheDay').innerText = "Quote of the Day: " + quoteOfTheDay;
+
+        document.getElementById('newQuoteBtn').addEventListener('click', function() {
+            const randomIndex = Math.floor(Math.random() * quotes.length);
+            document.getElementById('quote').innerText = quotes[randomIndex];
+        });
+    </script>
+</body>
+</html>
